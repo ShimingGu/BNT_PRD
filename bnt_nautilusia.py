@@ -60,23 +60,39 @@ elif mode_likelihood%2 == 0:
     lklhd_print_1 = '# BNT-Transformed C_l likelihood'
     name_label = name_label + 'BNT_'
 if mode_likelihood > 0 and mode_likelihood <= 2:
-    IA_switch = True;m_switch=False;dz_switch=False
-    lklhd_print_2 = '# with IA, without m, without dz'
+    IA_switch = True;TATT_switch = False;m_switch=False;dz_switch=False
+    lklhd_print_2 = '# with NLA IA, without m, without dz'
     name_label = name_label + 'IA_nom_nodz_'
 elif mode_likelihood > 2 and mode_likelihood <= 4:
-    IA_switch = True;m_switch=True;dz_switch=False
-    lklhd_print_2 = '# with IA, with m, without dz'
+    IA_switch = True;TATT_switch = False;m_switch=True;dz_switch=False
+    lklhd_print_2 = '# with NLA IA, with m, without dz'
     name_label = name_label + 'IA_m_nodz_'
 elif mode_likelihood > 4 and mode_likelihood <= 6:
-    IA_switch = True;m_switch=False;dz_switch=True
-    lklhd_print_2 = '# with IA, without m, with dz'
+    IA_switch = True;TATT_switch = False;m_switch=False;dz_switch=True
+    lklhd_print_2 = '# with NLA IA, without m, with dz'
     name_label = name_label + 'IA_nom_dz_'
 elif mode_likelihood > 6 and mode_likelihood <= 8:
-    IA_switch = True;m_switch=True;dz_switch=True
-    lklhd_print_2 = '# with IA, with m, with dz'
+    IA_switch = True;TATT_switch = False;m_switch=True;dz_switch=True
+    lklhd_print_2 = '# with NLA IA, with m, with dz'
+    name_label = name_label + 'IA_m_dz_'
+if mode_likelihood > 10 and mode_likelihood <= 12:
+    IA_switch = True;TATT_switch = True;m_switch=False;dz_switch=False
+    lklhd_print_2 = '# with TATT IA, without m, without dz'
+    name_label = name_label + 'IA_nom_nodz_'
+elif mode_likelihood > 12 and mode_likelihood <= 14:
+    IA_switch = True;TATT_switch = True;m_switch=True;dz_switch=False
+    lklhd_print_2 = '# with TATT IA, with m, without dz'
+    name_label = name_label + 'IA_m_nodz_'
+elif mode_likelihood > 14 and mode_likelihood <= 16:
+    IA_switch = True;TATT_switch = True;m_switch=False;dz_switch=True
+    lklhd_print_2 = '# with TATT IA, without m, with dz'
+    name_label = name_label + 'IA_nom_dz_'
+elif mode_likelihood > 16 and mode_likelihood <= 18:
+    IA_switch = True;TATT_switch = True;m_switch=True;dz_switch=True
+    lklhd_print_2 = '# with TATT IA, with m, with dz'
     name_label = name_label + 'IA_m_dz_'
 elif mode_likelihood > 90 and mode_likelihood <= 92:
-    IA_switch = True;m_switch=False;dz_switch=False
+    IA_switch = True;TATT_switch = False;m_switch=False;dz_switch=False
     lklhd_print_2 = '# with IA, without m, without dz, test'
     name_label = name_label + 'IA_nom_nodz_short_'; chainlim = 1000
     
@@ -287,12 +303,13 @@ if MG_switch == True:
 if IA_switch == True:
     Param_basics.append('A_IA')
     Param_basics.append('eta_IA')
-    Param_basics.append('A_IA2')
-    Param_basics.append('eta_IA2')
     prior.add_parameter('A_IA', dist=(-6.0, +6.0))
     prior.add_parameter('eta_IA', dist=(-5.0, +5.0))
-    prior.add_parameter('A_IA2', dist=(-6.0, +6.0))
-    prior.add_parameter('eta_IA2', dist=(-5.0, +5.0))
+    if TATT_switch == True:
+        Param_basics.append('A_IA2')
+        Param_basics.append('eta_IA2')
+        prior.add_parameter('A_IA2', dist=(-6.0, +6.0))
+        prior.add_parameter('eta_IA2', dist=(-5.0, +5.0))
 
 # Redshift Error
 if dz_switch == True:
@@ -327,6 +344,7 @@ btype = [('Omega_m_output', float), ('sigma_8_output', float), ('S_8', float), (
 def loglike_cosmo(param_dict):
     bnt_the = bnt_core(nz_dt,**param_dict,ell_arr=ell_arr,dz_mean = mu_dz,
                        NL_code=NL_code,NL_recipe='mead',
+                       Modified_Gravity=MG_switch,
                        dzmode='additive',m_bias=True)
     sig8 = ccl.power.sigma8(bnt_the.ccl_cosmo)
     S8 = np.sqrt(bnt_the.Om/0.3)*sig8
