@@ -197,7 +197,7 @@ class bnt_core:
                 
     def _inflate_cosmology(self,**kwargs):
         Omega_mode = kwargs.pop('Omega_h',False)
-        MG = kwargs.pop('Modified_Gravity',False)
+        self.MG = kwargs.pop('Modified_Gravity',False)
         self.h = float(kwargs.pop('h',0.6898))
         if Omega_mode == False:
             self.Om = float(kwargs.pop('Omega_m',0.2905))
@@ -209,9 +209,9 @@ class bnt_core:
             self.Oc = self.Och2/self.h/self.h
             self.Ob = self.Obh2/self.h/self.h
             self.Om = self.Oc+self.Ob
-        if MG == False:
+        if self.MG == False:
             self.mgpara=None
-        elif MG == True:
+        elif self.MG == True:
             self.mu_mg = float(kwargs.pop('mu_MG',0.0))
             self.Sigma_mg = float(kwargs.pop('Sigma_MG',0.0))
             self.mgpara=ccl.modified_gravity.mu_Sigma.MuSigmaMG(mu_0=self.mu_mg,sigma_0=self.Sigma_mg)
@@ -256,7 +256,7 @@ class bnt_core:
                              matter_power_spectrum=self.nl_code,
                              mg_parametrization=self.mgpara)
                              #extra_parameters=ep)
-        else:
+        elif self.nl_code == 'camb':
             self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
                              Omega_b = self.Ob,h = self.h,
                              n_s = self.ns,A_s=self.As,Neff=3.046, 
@@ -264,6 +264,15 @@ class bnt_core:
                              transfer_function=self.transfer,
                              matter_power_spectrum=self.nl_code,
                              #mg_parametrization=self.mgpara,
+                             extra_parameters=ep)
+        else:
+            self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
+                             Omega_b = self.Ob,h = self.h,
+                             n_s = self.ns,A_s=self.As,Neff=3.046, 
+                             m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
+                             transfer_function=self.transfer,
+                             matter_power_spectrum=self.nl_code,
+                             mg_parametrization=self.mgpara,
                              extra_parameters=ep)
         
     def _inflate_power(self,**kwargs):
@@ -550,7 +559,7 @@ class bnt_core:
         return Cls
         
     def Cl_tomo2(self):
-        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
+        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
         self.wkernel = np.array([self.kernel_clean(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
         bnt_tracer = []
         for i in range(self.ntomo):
@@ -568,7 +577,7 @@ class bnt_core:
         self.Cls = Cls
         
     def Cl_tomok(self):
-        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
+        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
         self.wkernel = np.array([self.kernel_clean(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
         kern_func = []
         for i in range(self.ntomo):
@@ -587,25 +596,94 @@ class bnt_core:
         for i in range(self.ntomo):
             Tracer_bnt = ccl.tracers.Tracer()
             if self.IA_on == False:
-                Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),der_bessel=-1, der_angles=2)
+                if self.MG == False:
+                    Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),der_bessel=-1, der_angles=2)
+                elif self.MG == True:
+                    Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),z_b=self.nz_dt[:,0],der_bessel=-1, der_angles=2)
             else:
                 ta = (1./(1+(self.nz_dt[:,0])[::-1]), self.aia1[::-1])
-                Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),transfer_a=ta,der_bessel=-1, der_angles=2)
+                if self.MG == False:
+                    Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),transfer_a=ta,der_bessel=-1, der_angles=2)
+                elif self.MG == True:
+                    Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),z_b=self.nz_dt[:,0],transfer_a=ta,der_bessel=-1, der_angles=2)
             bnt_tracer.append(Tracer_bnt)
         if self.mbias_ == None:
             self.aCls = np.array([[ccl.angular_cl(self.ccl_cosmo,bnt_tracer[i],bnt_tracer[j],self.ell_arr,p_of_k_a = self.pk2d) for i in range(self.ntomo)] for j in range(self.ntomo)])
         else:
             self.aCls = np.array([[(1+self.mbias[i])*(1+self.mbias[j])*ccl.angular_cl(self.ccl_cosmo,bnt_tracer[i],bnt_tracer[j],self.ell_arr,p_of_k_a = self.pk2d) for i in range(self.ntomo)] for j in range(self.ntomo)])
         #return aCls
+        
+    def Cl_tomo_ext2(self,pk2d=None,mode='GG'):
+        if pk2d is None:
+            if mode == 'GG':
+                pk2d = self.pk2d
+                if self.TATT_on == False:
+                    self.tt_on = False
+                else:
+                    self.tt_on = True
+            elif mode == 'GI' or 'IG':
+                pk2d = self.pk2d_GI;self.tt_on = True
+            elif mode == 'II':
+                pk2d = self.pk2d_II;self.tt_on = True
+        else:
+            self.tt_on = True
+        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
+        self.wkernel = np.array([self.kernel_clean(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
+        #self.vkernels = self.p_a_i@self.wkernels
+        #self.ntracers = [ccl.tracers.NumberCountsTracer(cosmo=self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,it+1]), bias=(self.nz_dt[:,0],np.ones_like(self.nz_dt[:,0])), has_rsd=False) for it in range(self.ntomo)]
+        self.nkernel = np.array([self.kernel_clean_N(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
+        #self.mkernels = self.p_a_i @ self.nkernels
+        nobnt_tracer1 = []
+        nobnt_tracer2 = []
+        for i in range(self.ntomo):
+            Tracer_bnt = ccl.tracers.Tracer()
+            Tracer_bia = ccl.tracers.Tracer()
+            if self.IA_on == False or self.tt_on == True:
+                if mode != 'II':
+                    if self.MG == False:
+                        Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.wkernel[i]),der_bessel=-1, der_angles=2)
+                    elif self.MG == True:
+                        Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.wkernel[i]),z_b=self.nz_dt[:,0],der_bessel=-1, der_angles=2)
+                    nobnt_tracer1.append(Tracer_bnt)
+                if mode != 'GG':
+                    Tracer_bia.add_tracer(cosmo=self.ccl_cosmo,kernel=(self.chi_N,self.nkernel[i]))
+                    nobnt_tracer2.append(Tracer_bia)
+            elif self.IA_on == True and mode != 'II':
+                ta = (1./(1+(self.nz_dt[:,0])[::-1]), self.aia1[::-1])
+                if self.MG == False:
+                    Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.wkernel[i]),transfer_a=ta,der_bessel=-1, der_angles=2)
+                elif self.MG == True:
+                    Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.wkernel[i]),z_b=self.nz_dt[:,0],transfer_a=ta,der_bessel=-1, der_angles=2)
+                nobnt_tracer1.append(Tracer_bnt)
+        if mode == 'GG':
+            nobnt_tracer1 = nobnt_tracer1
+            nobnt_tracer2 = nobnt_tracer1
+        elif mode == 'GI':
+            nobnt_tracer1 = nobnt_tracer1
+            nobnt_tracer2 = nobnt_tracer2
+        elif mode == 'II':
+            nobnt_tracer1 = nobnt_tracer2
+            nobnt_tracer2 = nobnt_tracer2
+        if self.mbias_ == None:
+            aCls = np.array([[ccl.angular_cl(self.ccl_cosmo,nobnt_tracer1[i],nobnt_tracer2[j],self.ell_arr,p_of_k_a = pk2d) for i in range(self.ntomo)] for j in range(self.ntomo)])
+        else:
+            aCls = np.array([[(1+self.mbias[i])*(1+self.mbias[j])*ccl.angular_cl(self.ccl_cosmo,bnt_tracer1[i],bnt_tracer2[j],self.ell_arr,p_of_k_a = pk2d) for i in range(self.ntomo)] for j in range(self.ntomo)])
+        return aCls
                          
     def aCl_tomo_ext(self,pk2d=None,mode='GG'):
         if pk2d is None:
             if mode == 'GG':
                 pk2d = self.pk2d
+                if self.TATT_on == False:
+                    self.tt_on = False
+                else:
+                    self.tt_on = True
             elif mode == 'GI' or 'IG':
-                pk2d = self.pk2d_GI
+                pk2d = self.pk2d_GI;self.tt_on = True
             elif mode == 'II':
-                pk2d = self.pk2d_II
+                pk2d = self.pk2d_II;self.tt_on = True
+        else:
+            self.tt_on = True
         chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
         self.wkernels = np.array([self.kernel_clean(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
         self.vkernels = self.p_a_i@self.wkernels
@@ -617,16 +695,22 @@ class bnt_core:
         for i in range(self.ntomo):
             Tracer_bnt = ccl.tracers.Tracer()
             Tracer_bia = ccl.tracers.Tracer()
-            if self.IA_on == False:
+            if self.IA_on == False or self.tt_on == True:
                 if mode != 'II':
-                    Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),der_bessel=-1, der_angles=2)
+                    if self.MG == False:
+                        Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),der_bessel=-1, der_angles=2)
+                    elif self.MG == True:
+                        Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),z_b=self.nz_dt[:,0],der_bessel=-1, der_angles=2)
                     bnt_tracer1.append(Tracer_bnt)
                 if mode != 'GG':
                     Tracer_bia.add_tracer(cosmo=self.ccl_cosmo,kernel=(self.chi_N,self.mkernels[i]))
                     bnt_tracer2.append(Tracer_bia)
             elif self.IA_on == True and mode != 'II':
                 ta = (1./(1+(self.nz_dt[:,0])[::-1]), self.aia1[::-1])
-                Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),transfer_a=ta,der_bessel=-1, der_angles=2)
+                if self.MG == False:
+                    Tracer_bnt.add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),transfer_a=ta,der_bessel=-1, der_angles=2)
+                elif self.MG == True:
+                    Tracer_bnt._MG_add_tracer(cosmo=self.ccl_cosmo,kernel=(chis,self.vkernels[i]),z_b=self.nz_dt[:,0],transfer_a=ta,der_bessel=-1, der_angles=2)
                 bnt_tracer1.append(Tracer_bnt)
         if mode == 'GG':
             bnt_tracer2 = bnt_tracer1
@@ -642,7 +726,7 @@ class bnt_core:
         return aCls
         
     def aCl_tomok(self):
-        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
+        chis,kernel0 = ccl.tracers.get_lensing_kernel(self.ccl_cosmo,dndz=(self.nz_dt[:,0],self.nz_dt[:,1]),n_chi=len(self.nz_dt[:,0]))
         self.wkernels = np.array([self.kernel_clean(self.ccl_cosmo,self.nz_dt[:,0],self.nz_dt[:,k+1]) for k in range(self.ntomo)])
         self.vkernels = self.p_a_i@self.wkernels
         kern_func = []
@@ -659,22 +743,30 @@ class bnt_core:
         ell_arr = self.ell_arr
         ntomo = self.ntomo
         nell = self.nell
+        ltomo = int(ntomo*(ntomo+1)/2)
         if klim == False:
             if self.TATT_on == False:
                 self.Cl_tomo()
             else:
-                self.Cls_gg = self.Cl_tomo_ext(mode='GG')
-                self.Cls_gi = self.Cl_tomo_ext(mode='GI')
-                self.Cls_ii = self.Cl_tomo_ext(mode='II')
+                self.Cls_gg = self.Cl_tomo_ext2(mode='GG')
+                self.Cls_gi = self.Cl_tomo_ext2(mode='GI')
+                self.Cls_ii = self.Cl_tomo_ext2(mode='II')
                 self.Cls = self.Cls_gg+self.Cls_gi+self.Cls_ii
         else:
             self.Cl_tomok()
-        ltomo = int(ntomo*(ntomo+1)/2)
         self.Cl_deorg = np.zeros(ltomo*nell)
+        if self.TATT_on == True:
+            self.Cl_gg_deorg = np.zeros(ltomo*nell)
+            self.Cl_gi_deorg = np.zeros(ltomo*nell)
+            self.Cl_ii_deorg = np.zeros(ltomo*nell)
         q = 0
         for i in range(ntomo):
             for j in range(i,ntomo):
                 self.Cl_deorg[q*nell:(q+1)*nell] = self.Cls[i,j]
+                if self.TATT_on == True:
+                    self.Cl_gg_deorg[q*nell:(q+1)*nell] = self.Cls_gg[i,j]
+                    self.Cl_gi_deorg[q*nell:(q+1)*nell] = self.Cls_gi[i,j]
+                    self.Cl_ii_deorg[q*nell:(q+1)*nell] = self.Cls_ii[i,j]
                 q += 1
                 
     def aCl_vec_reorg(self,klim=False):
@@ -694,8 +786,16 @@ class bnt_core:
             self.aCl_tomok()
         ltomo = int(ntomo*(ntomo+1)/2)
         self.aCl_reorg = np.zeros(ltomo*nell)
+        if self.TATT_on == True:
+            self.aCl_gg_reorg = np.zeros(ltomo*nell)
+            self.aCl_gi_reorg = np.zeros(ltomo*nell)
+            self.aCl_ii_reorg = np.zeros(ltomo*nell)
         q = 0
         for i in range(ntomo):
             for j in range(i,ntomo):
                 self.aCl_reorg[q::ltomo] = self.aCls[i,j]
+                if self.TATT_on == True:
+                    self.aCl_gg_reorg[q::ltomo] = self.aCls_gg[i,j]
+                    self.aCl_gi_reorg[q::ltomo] = self.aCls_gi[i,j]
+                    self.aCl_ii_reorg[q::ltomo] = self.aCls_ii[i,j]
                 q += 1

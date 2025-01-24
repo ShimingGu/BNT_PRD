@@ -13,7 +13,7 @@ import subprocess as sub
 from mpi4py.futures import MPIPoolExecutor
 os.environ["OMP_NUM_THREADS"] = "1"
 
-folder = '/consus/pm2x/gsm/nulling/test_chains_nautilus/'
+folder = '/consus/pm2x/gsm/nulling_IA/chains_Jan22/'
 subfolder = 'backups/'
 checkpoint_path = '/home/gsm/'
 chainlim = 5e5
@@ -74,26 +74,30 @@ elif mode_likelihood > 4 and mode_likelihood <= 6:
 elif mode_likelihood > 6 and mode_likelihood <= 8:
     IA_switch = True;TATT_switch = False;m_switch=True;dz_switch=True
     lklhd_print_2 = '# with NLA IA, with m, with dz'
-    name_label = name_label + 'IA_m_dz_'
+    name_label = name_label + 'TATT_m_dz_'
 if mode_likelihood > 10 and mode_likelihood <= 12:
     IA_switch = True;TATT_switch = True;m_switch=False;dz_switch=False
     lklhd_print_2 = '# with TATT IA, without m, without dz'
-    name_label = name_label + 'IA_nom_nodz_'
+    name_label = name_label + 'TATT_nom_nodz_'
 elif mode_likelihood > 12 and mode_likelihood <= 14:
     IA_switch = True;TATT_switch = True;m_switch=True;dz_switch=False
     lklhd_print_2 = '# with TATT IA, with m, without dz'
-    name_label = name_label + 'IA_m_nodz_'
+    name_label = name_label + 'TATT_m_nodz_'
 elif mode_likelihood > 14 and mode_likelihood <= 16:
     IA_switch = True;TATT_switch = True;m_switch=False;dz_switch=True
     lklhd_print_2 = '# with TATT IA, without m, with dz'
-    name_label = name_label + 'IA_nom_dz_'
+    name_label = name_label + 'TATT_nom_dz_'
 elif mode_likelihood > 16 and mode_likelihood <= 18:
     IA_switch = True;TATT_switch = True;m_switch=True;dz_switch=True
     lklhd_print_2 = '# with TATT IA, with m, with dz'
-    name_label = name_label + 'IA_m_dz_'
-elif mode_likelihood > 90 and mode_likelihood <= 92:
+    name_label = name_label + 'TATT_m_dz_'
+elif mode_likelihood > 80 and mode_likelihood <= 82:
     IA_switch = True;TATT_switch = False;m_switch=False;dz_switch=False
     lklhd_print_2 = '# with IA, without m, without dz, test'
+    name_label = name_label + 'IA_nom_nodz_short_'; chainlim = 1000
+elif mode_likelihood > 90 and mode_likelihood <= 92:
+    IA_switch = True;TATT_switch = True;m_switch=False;dz_switch=False
+    lklhd_print_2 = '# with TATT IA, without m, without dz, test'
     name_label = name_label + 'IA_nom_nodz_short_'; chainlim = 1000
     
 # IA_switch = False # if to turn off IA completely
@@ -161,7 +165,7 @@ elif mode_fiducial == 6:
     MG_switch = False;IA_switch = False
 elif mode_fiducial == 10:
     fidcl_print = '# builtin halofit';AIAfid = 0.0
-    NL_code = 'halofit';NL_recipe = 'mead';name_label += 'fid_Takahashi_ccl_'
+    NL_code = 'halofit';NL_recipe = 'takahashi';name_label += 'fid_Takahashi_ccl_'
     MG_switch = False
 elif mode_fiducial == 11:
     fidcl_print = '# builtin halofit with Modified Gravity';AIAfid = 0.0
@@ -349,14 +353,13 @@ def loglike_cosmo(param_dict):
     sig8 = ccl.power.sigma8(bnt_the.ccl_cosmo)
     S8 = np.sqrt(bnt_the.Om/0.3)*sig8
     try:
-        #if 1 > 0:
-        try:
-            #if 1 > 0:
+        if 1 > 0:
+        #try:
             bnt_the.Cl_vec(klim=False)
             Cl_the = bnt_the.Cl_deorg
             Cl_std_use = 1.0*Cl_std
-        except:
-            #else:
+        #except:
+        else:
             bnt_the.Cl_vec(klim=True)
             Cl_the = bnt_the.Cl_deorg
             Cl_std_use = 1.0*Cl_stdc
