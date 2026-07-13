@@ -32,7 +32,7 @@ for the expected data location.
 ## Run
 
 ```bash
-./run_bnt.sh 000000
+./run_bnt.sh 080002
 ```
 
 Set `BNT_MPI_WORKERS` to change the process count. Set `BNT_DATA_DIR` to the

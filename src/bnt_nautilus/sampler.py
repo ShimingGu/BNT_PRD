@@ -243,7 +243,7 @@ elif mode_fiducial == 5:
     theoretical_fid = True;As_switch=False
     AIAfid = 0.0; A2fid = 0.0; bTAfid = 0.0
     NL_code = 'camb';NL_recipe = 'mead2020_feedback';name_label += 'fid_Meadoldcovmat_'
-    MG_switch = False;IA_B1 = 0;KL_dir2 = KL_dir
+    MG_switch = False;IA_B1 = 0;KL_dir2 = str(data_dir) + os.sep
     
 
 #
