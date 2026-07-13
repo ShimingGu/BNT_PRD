@@ -6,6 +6,10 @@ directory, so paths are relative to the checkout by default.
 
 The accompanying paper is available as [arXiv:2607.04384](https://arxiv.org/abs/2607.04384).
 
+The code responsible for [arXiv:2511.09544](https://arxiv.org/abs/2511.09544)
+and [arXiv:2412.14704](https://arxiv.org/abs/2412.14704) is on the
+[`euclid-mock`](https://github.com/ShimingGu/BNT_PRD/tree/euclid-mock) branch.
+
 ## Setup
 
 Create an environment that provides a C/C++ toolchain and MPI implementation,
