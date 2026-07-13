@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.ipynb_checkpoints/
+outputs/
+
+# Full KiDS/BNT inputs are available on request; do not commit them here.
+data/KL_new/
+data/KL_KiDS/
