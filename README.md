@@ -4,6 +4,8 @@ This package runs the BNT-transformed pseudo-`C_ell` KiDS likelihood using
 Nautilus and MPI. It has been extracted from the original HPC working
 directory, so paths are relative to the checkout by default.
 
+The accompanying paper is available as [arXiv:2607.04384](https://arxiv.org/abs/2607.04384).
+
 ## Setup
 
 Create an environment that provides a C/C++ toolchain and MPI implementation,
