@@ -479,7 +479,7 @@ if dz_switch == True:
             prior.add_parameter('dz'+str(i+1), dist=norm(loc=mu_dz[i], scale=std_dz[i]))
         else:
             Param_basics.append('ranz'+str(i+1))
-            prior.add_parameter('ranz'+str(i+1), dist=norm(loc=mu_dz[i], scale=std_dz[i]))
+            prior.add_parameter('ranz'+str(i+1), dist=norm(loc=0.0, scale=1.0))
 
 # Multiplicative Bias
 if m_switch == True:
