@@ -1,0 +1,17 @@
+{
+  "schema": "bnt/analytic-s8-benchmark/1",
+  "sample": "fiducial, omega_c=0.153, omega_b=0.0225, h=0.6898, n_s=0.969, S_8=0.797, KL_new, camb+HMcode",
+  "method": "same-process A/B, old conditional S8 iteration vs exact sigma8~sqrt(A_s) match; construct+pCl_vec",
+  "old_totals_seconds": [12.138, 8.521],
+  "new_totals_seconds": [8.774, 8.330],
+  "steady_state_speedup": 1.023,
+  "construct_old_seconds": [11.487, 7.934],
+  "construct_new_seconds": [8.428, 7.995],
+  "pcl_old_seconds": [0.651, 0.586],
+  "pcl_new_seconds": [0.345, 0.335],
+  "camb_transfer_solves": {"old": 2, "new": 2},
+  "as_identical": true,
+  "sigma8_identical": true,
+  "pcl_max_abs_difference": 0.0,
+  "note": "No material speedup: the old loop already used two transfer solves. The analytic match removes the conditional third solve and the 1% tolerance check; the CAMB transfer itself is unchanged."
+}

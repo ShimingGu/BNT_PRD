@@ -1,0 +1,37 @@
+--- a/bnt_mcmc_pCl.py
++++ b/bnt_mcmc_pCl.py
+@@ -435,19 +435,11 @@
+                 #S8_1 = np.sqrt(self.Om/0.3)*ccl.power.sigma8(cosmo_0)
+                 #As_1 = As_0*(self.S8/S8_1)**2
+                 sig8_1 = ccl.power.sigma8(cosmo_0)
+-                As_1 = As_0*(self.sig8/sig8_1)**2
+-                cosmo_1 = ccl.Cosmology(Omega_c = self.Oc,
+-                             Omega_b = self.Ob,h = self.h,
+-                             n_s = self.ns,A_s=As_1,Neff=3.046, 
+-                             m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
+-                             transfer_function=self.transfer,
+-                             matter_power_spectrum=self.nl_code,
+-                             #mg_parametrization=self.mgpara,
+-                             extra_parameters=ep)
+-                sig8_2 = ccl.power.sigma8(cosmo_1)
+-                if np.abs(sig8_2/self.sig8 - 1) > 0.01:
+-                    self.As = As_1*(self.sig8/sig8_2)**2
+-                    self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
++                # For a fixed background and primordial shape, sigma8 is
++                # exactly proportional to sqrt(A_s); one solve fixes the
++                # amplitude, so the old 2-3 cosmology iteration is redundant.
++                self.As = As_0*(self.sig8/sig8_1)**2
++                self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
+                              Omega_b = self.Ob,h = self.h,
+                              n_s = self.ns,A_s=self.As,Neff=3.046, 
+                              m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
+@@ -455,9 +447,6 @@
+                              matter_power_spectrum=self.nl_code,
+                              #mg_parametrization=self.mgpara,
+                              extra_parameters=ep)
+-                else:
+-                    self.As = As_1
+-                    self.ccl_cosmo = cosmo_1
+                     
+                 
+         else:
