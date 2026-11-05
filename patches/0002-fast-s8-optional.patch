@@ -1,0 +1,53 @@
+--- a/bnt_mcmc_pCl.py
++++ b/bnt_mcmc_pCl.py
+@@ -7,6 +7,28 @@
+ from scipy.ndimage import gaussian_filter as gf
+ import copy
+ import pyccl as ccl
++import camb
++
++
++def _fast_sigma8(omega_c, omega_b, h, n_s, m_nu, A_s):
++    """Approximate linear sigma8 for the optional fast S8 normalisation.
++
++    Direct CAMB at AccuracyBoost=IntTolBoost=0.5 is about 10x faster than a
++    full pyccl transfer.  Its bias relative to pyccl reaches 4.9e-3 over the
++    prior corners, so this path is opt-in (``fast_s8=True``) and off by default.
++    """
++    params = camb.CAMBparams()
++    params.set_cosmology(
++        H0=100 * h, ombh2=omega_b, omch2=omega_c, mnu=m_nu, nnu=3.046
++    )
++    params.set_accuracy(AccuracyBoost=0.5)
++    params.Accuracy.IntTolBoost = 0.5
++    params.InitPower.set_params(As=A_s, ns=n_s)
++    params.WantCls = False
++    params.set_matter_power(
++        redshifts=[0.0], kmax=10.0, nonlinear=False, silent=True
++    )
++    return float(camb.get_results(params).get_sigma8_0())
+ 
+ def cosmo_2_cosmo(ccl_cosmo=None,astropy_cosmo=None,n_s=None,A_s=None,sig_8=None):
+     if ccl_cosmo == None and astropy_cosmo == None:
+@@ -202,6 +224,7 @@
+ class bnt_core:
+     
+     def __init__(self,nz_data,ell_arr=None,pCl_dir='./KL/',**kwargs):
++        self.fast_s8 = bool(kwargs.pop('fast_s8',False))
+         self.nz_dt = self._dz(nz_data,**kwargs)
+         self.pCl_dir = pCl_dir
+         self.zari = np.flip(self.nz_dt[:,0])
+@@ -434,7 +457,12 @@
+                              extra_parameters=ep)
+                 #S8_1 = np.sqrt(self.Om/0.3)*ccl.power.sigma8(cosmo_0)
+                 #As_1 = As_0*(self.S8/S8_1)**2
+-                sig8_1 = ccl.power.sigma8(cosmo_0)
++                if self.fast_s8:
++                    sig8_1 = _fast_sigma8(
++                        self.Och2, self.Obh2, self.h, self.ns, self.M_nu, As_0
++                    )
++                else:
++                    sig8_1 = ccl.power.sigma8(cosmo_0)
+                 # For a fixed background and primordial shape, sigma8 is
+                 # exactly proportional to sqrt(A_s); one solve fixes the
+                 # amplitude, so the old 2-3 cosmology iteration is redundant.

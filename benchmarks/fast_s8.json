@@ -1,0 +1,15 @@
+{
+  "schema": "bnt/fast-s8-benchmark/1",
+  "sample": "fiducial, omega_c=0.153, omega_b=0.0225, h=0.6898, n_s=0.969, S_8=0.797, KL_new, camb+HMcode",
+  "mode": "optional fast_s8=True: direct CAMB AccuracyBoost=IntTolBoost=0.5 for the S8 normalisation, full pyccl cosmology for the final C_l",
+  "default": false,
+  "full_totals_seconds": [8.642, 12.510],
+  "fast_totals_seconds": [5.060, 5.435],
+  "speedup_steady_state": 1.65,
+  "as_relative_difference": 8.107e-4,
+  "s8_relative_error_at_fiducial": 4.053e-4,
+  "s8_worst_abs_relative_error_prior_corners": 4.865e-3,
+  "pcl_max_scaled_difference_vs_full": 2.586e-11,
+  "camb_transfer_solves": {"full": 2, "fast": 1},
+  "note": "fast_s8 is opt-in because the worst prior-corner S8 bias is 0.00487, close to the 0.005 engineering threshold; the default path is exact."
+}
