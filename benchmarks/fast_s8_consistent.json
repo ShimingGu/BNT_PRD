@@ -1,0 +1,15 @@
+{
+  "schema": "bnt/fast-s8-consistent/1",
+  "sample": "fiducial, omega_c=0.153, omega_b=0.0225, h=0.6898, n_s=0.969, S_8=0.797, KL_new, camb+HMcode",
+  "mode": "fast_s8=True, pyccl-consistent: CAMB with pyccl neutrino splitting/T_ncdm/BBN YHe, AB=IntTolBoost=0.3, lmax=500, top-hat integration of P(k)",
+  "full_totals_seconds": [8.178, 11.689],
+  "fast_totals_seconds": [5.754, 5.731],
+  "steady_state_speedup": 1.43,
+  "camb_solves": {"full": 2, "fast": 1},
+  "s8_relative_error_fiducial": -3.587e-5,
+  "s8_worst_abs_relative_error_prior_corners": 1.039e-4,
+  "as_relative_difference_fiducial": -7.173e-5,
+  "pcl_max_scaled_difference_vs_full": 2.288e-12,
+  "enabled_in": "bnt_nautilus_pCl.py loglike_cosmo",
+  "note": "Default bnt_core remains fast_s8=False for exact standalone use; the sampler enables the validated fast path."
+}
