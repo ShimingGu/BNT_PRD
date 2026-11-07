@@ -31,7 +31,11 @@ _STATE = {}
 def _init(mode, data_dir, output_dir):
     os.environ["BNT_DATA_DIR"] = data_dir
     os.environ["BNT_OUTPUT_DIR"] = output_dir
-    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    # Pin every thread pool before numpy/CCL/CAMB are imported; otherwise each
+    # worker oversubscribes the cores and throughput collapses with N.
+    for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+        os.environ[name] = "1"
     sys.argv = ["bnt_nautilus.sampler", mode]
     # The sampler module requires __name__ == "__main__" (it reads MODE and
     # would otherwise raise during import).  Run it as __main__ and intercept
