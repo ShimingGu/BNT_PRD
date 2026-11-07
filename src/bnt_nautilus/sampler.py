@@ -20,8 +20,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 project_dir = Path(__file__).resolve().parents[2]
 data_dir = Path(os.environ.get('BNT_DATA_DIR', project_dir / 'data'))
 output_dir = Path(os.environ.get('BNT_OUTPUT_DIR', project_dir / 'outputs'))
-# The fast matter-only normalization is within the S8 tolerance (0.005).
-# Set BNT_SIGMA8_NORMALIZATION=ccl to restore the reference path.
+# S8->As is a prior reparameterization: this map changes the prior volume in
+# As, not the spectrum at fixed As.  Set BNT_SIGMA8_NORMALIZATION=ccl to
+# restore the reference map.
 sigma8_normalization = os.environ.get('BNT_SIGMA8_NORMALIZATION', 'camb_matter')
 output_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_path = str(output_dir / 'checkpoints') + os.sep
