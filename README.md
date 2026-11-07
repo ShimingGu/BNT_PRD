@@ -22,6 +22,14 @@ python -m pip install -e .
 `pyccl` and `mpi4py` may need to be built against the local scientific/MPI
 stack.
 
+An optional matter-only CAMB estimate can speed up the single S8 amplitude
+correction. Enable it with `BNT_SIGMA8_NORMALIZATION=camb_matter`; the default
+`ccl` method is unchanged. The approximation is currently restricted to
+`w0=-1`, `wa=0`, and `m_nu=0.06 eV`, and its accuracy has only been checked
+at a small set of prior points. See `GPU_ACCELERATION_DRAFT.md` and
+`benchmark_sigma8.py` for details. Fast-path output and checkpoints have a
+`fastsigma8_` prefix to keep them separate from the default method.
+
 ## Data access
 
 The full KiDS/BNT input data are not distributed with this repository. If you

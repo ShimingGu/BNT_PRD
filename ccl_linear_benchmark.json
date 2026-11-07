@@ -1,0 +1,41 @@
+[
+  {
+    "parameters": [
+      0.153,
+      0.0225,
+      0.6898,
+      0.969
+    ],
+    "sigma8_baseline": 0.9469634194956567,
+    "sigma8_linear": 0.9469634194956567,
+    "relative_difference": 0.0,
+    "baseline_seconds": 4.369698464870453,
+    "linear_seconds": 3.4547414295375347
+  },
+  {
+    "parameters": [
+      0.078,
+      0.0236,
+      0.6528,
+      0.975
+    ],
+    "sigma8_baseline": 0.5957252414836826,
+    "sigma8_linear": 0.5957252414836826,
+    "relative_difference": 0.0,
+    "baseline_seconds": 4.9508657939732075,
+    "linear_seconds": 4.46852982416749
+  },
+  {
+    "parameters": [
+      0.328,
+      0.0215,
+      0.6858,
+      1.019
+    ],
+    "sigma8_baseline": 1.373264205159903,
+    "sigma8_linear": 1.3732641987397163,
+    "relative_difference": -4.675128617570579e-09,
+    "baseline_seconds": 4.759981235489249,
+    "linear_seconds": 3.6752632036805153
+  }
+]

@@ -1,0 +1,53 @@
+{
+  "camb_transfer_seconds": 3.814635531976819,
+  "measurements": [
+    {
+      "device": "cpu",
+      "dtype": "torch.float64",
+      "grid_points": 206,
+      "redshifts": 3,
+      "radii": 64,
+      "repeats": 50,
+      "median_cached_ms": 0.5812384188175201,
+      "median_including_transfer_ms": 0.613057054579258,
+      "max_relative_error": 0.0018345832160238107,
+      "output_finite": true
+    },
+    {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "grid_points": 206,
+      "redshifts": 3,
+      "radii": 64,
+      "repeats": 50,
+      "median_cached_ms": 0.42075756937265396,
+      "median_including_transfer_ms": 0.46138186007738113,
+      "max_relative_error": 0.001834587933145615,
+      "output_finite": true
+    },
+    {
+      "device": "cuda",
+      "dtype": "torch.float64",
+      "grid_points": 206,
+      "redshifts": 3,
+      "radii": 64,
+      "repeats": 50,
+      "median_cached_ms": 0.6138132885098457,
+      "median_including_transfer_ms": 0.763988122344017,
+      "max_relative_error": 0.0018345832160238107,
+      "output_finite": true
+    },
+    {
+      "device": "cuda",
+      "dtype": "torch.float32",
+      "grid_points": 206,
+      "redshifts": 3,
+      "radii": 64,
+      "repeats": 50,
+      "median_cached_ms": 0.6209630519151688,
+      "median_including_transfer_ms": 0.8335337042808533,
+      "max_relative_error": 0.001834587933145615,
+      "output_finite": true
+    }
+  ]
+}

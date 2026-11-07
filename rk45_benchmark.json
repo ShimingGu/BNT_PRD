@@ -1,0 +1,74 @@
+[
+  {
+    "device": "cpu",
+    "dtype": "torch.float64",
+    "batch": 1,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.2616429701447487
+  },
+  {
+    "device": "cpu",
+    "dtype": "torch.float64",
+    "batch": 192,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 1.7593316733837128
+  },
+  {
+    "device": "cpu",
+    "dtype": "torch.float64",
+    "batch": 2048,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 32.92751219123602
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float64",
+    "batch": 1,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.8813273161649704
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float64",
+    "batch": 192,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.8890032768249512
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float64",
+    "batch": 2048,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.8962908759713173
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float32",
+    "batch": 1,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.8749403059482574
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float32",
+    "batch": 192,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.8883653208613396
+  },
+  {
+    "device": "cuda",
+    "dtype": "torch.float32",
+    "batch": 2048,
+    "nvar": 100,
+    "repeats": 30,
+    "median_cached_ms": 0.9154407307505608
+  }
+]
