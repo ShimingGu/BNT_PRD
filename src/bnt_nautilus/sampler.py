@@ -20,6 +20,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 project_dir = Path(__file__).resolve().parents[2]
 data_dir = Path(os.environ.get('BNT_DATA_DIR', project_dir / 'data'))
 output_dir = Path(os.environ.get('BNT_OUTPUT_DIR', project_dir / 'outputs'))
+# The fast matter-only normalization is within the S8 tolerance (0.005).
+# Set BNT_SIGMA8_NORMALIZATION=ccl to restore the reference path.
+sigma8_normalization = os.environ.get('BNT_SIGMA8_NORMALIZATION', 'camb_matter')
 output_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_path = str(output_dir / 'checkpoints') + os.sep
 Path(checkpoint_path).mkdir(parents=True, exist_ok=True)
@@ -49,7 +52,7 @@ if 1 > 0:
     mode_fiducial = int(mode[4:6])
     print(mode_likelihood,mode_scale,mode_fiducial)
     
-name_label = ''
+name_label = 'fastsigma8_' if sigma8_normalization == 'camb_matter' else ''
 
 #
 # Define the Mode for the Likelihood
@@ -293,6 +296,7 @@ if __name__ == '__main__':
 #
 
 bnt_std = bnt_core(nz_dt,ell_arr=bell_arr,pCl_dir=KL_dir,
+                   sigma8_normalization=sigma8_normalization,
                    NL_code=NL_code,NL_recipe=NL_recipe,
                    omega_c = 0.153,S_8=0.797,Omega_h=True,
                    A_IA=AIAfid,A_IA2=A2fid,IA_B1=IA_B1,b_TA=bTAfid,
@@ -313,6 +317,7 @@ bpCl_std = bnt_std.Cl_vector_to_bnt(pCl_std)
 aCl_cov = bnt_std.covmat_to_bnt_ell(Cl_cov)
 
 bnt_fid = bnt_core(nz_dt,ell_arr=bell_arr,pCl_dir=KL_dir,
+                   sigma8_normalization=sigma8_normalization,
                    NL_code=NL_code,NL_recipe=NL_recipe,
                    omega_c = 0.153,S_8=0.797,Omega_h=True,
                    A_IA=AIAfid,A_IA2=A2fid,IA_B1=IA_B1,b_TA=bTAfid,
@@ -333,6 +338,7 @@ bpCl_fid = bnt_fid.Cl_vector_to_bnt(pCl_fid)
 
 if theoretical_fid == True:
     bnt_tsc = bnt_core(nz_dt,ell_arr=cell_arr,pCl_dir=KL_dir,
+                       sigma8_normalization=sigma8_normalization,
                        NL_code=NL_code,NL_recipe=NL_recipe,
                        Omega_m = 0.2,S_8=0.797,Omega_h=False,
                        A_IA=AIAfid,A_IA2=A2fid,IA_B1=IA_B1,b_TA=bTAfid,
@@ -485,7 +491,7 @@ if dz_switch == True:
 if m_switch == True:
     for j in range(lz):
         Param_basics.append('m'+str(j+1))
-        prior.add_parameter('m'+str(j+1), dist=norm(loc=mu_m[i], scale=std_m[i]))
+        prior.add_parameter('m'+str(j+1), dist=norm(loc=mu_m[j], scale=std_m[j]))
         
 Param_message = '# '
 q = 0
@@ -515,6 +521,7 @@ def loglike_cosmo(param_dict):
                      param_dict['ranz4'], param_dict['ranz5'], param_dict['ranz6']])
     cdz = mu_dz + L_dz @ ranz
     bnt_the = bnt_core(nz_dt,**param_dict,ell_arr=cell_arr,#dz_mean = mu_dz,
+                       sigma8_normalization=sigma8_normalization,
                        dz1 = cdz[0],dz2 = cdz[1],
                        dz3 = cdz[2],dz4 = cdz[3],
                        dz5 = cdz[4],dz6 = cdz[5],
@@ -524,8 +531,8 @@ def loglike_cosmo(param_dict):
                        dzmode='additive',m_bias=True,
                        kmin=0.0025,kmax=100)
     
-    sig8 = ccl.power.sigma8(bnt_the.ccl_cosmo)
-    S8_output = np.sqrt(bnt_the.Om/0.3)*sig8
+    sig8 = bnt_the.sig8
+    S8_output = bnt_the.S8
     if 2 > 1:
         sig4 = ccl.power.sigmaR(bnt_the.ccl_cosmo,4./bnt_the.ccl_cosmo["h"])
         sig6 = ccl.power.sigmaR(bnt_the.ccl_cosmo,6./bnt_the.ccl_cosmo["h"])

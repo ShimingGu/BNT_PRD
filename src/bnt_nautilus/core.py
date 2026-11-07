@@ -4,9 +4,11 @@ from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from scipy.interpolate import interp1d,interp2d,RegularGridInterpolator
 from scipy.integrate import fixed_quad
+from scipy.special import roots_legendre
 from scipy.ndimage import gaussian_filter as gf
 import copy
 import pyccl as ccl
+from .calibration import matter_only_sigma8
 
 def cosmo_2_cosmo(ccl_cosmo=None,astropy_cosmo=None,n_s=None,A_s=None,sig_8=None):
     if ccl_cosmo == None and astropy_cosmo == None:
@@ -45,17 +47,35 @@ def n_1_i_int(z,n_of_z_interp,apcosmo):
     n_1_i_int = n_of_z_interp(z)/chi_of_z
     return n_1_i_int
 
+_LEGENDRE_CACHE = {}
+_BPW_CACHE = {}
+
+def _legendre_nodes(n):
+    cached = _LEGENDRE_CACHE.get(n)
+    if cached is None:
+        cached = roots_legendre(n)
+        _LEGENDRE_CACHE[n] = cached
+    return cached
+
 def n_0_n_1(nz_data,apcosmo):
     nzrows = nz_data.shape[0];ntomobin = nz_data.shape[1]-1
     nz_table = np.zeros((nzrows,ntomobin+1))
     n_0 = np.zeros(ntomobin);n_1 = np.zeros(ntomobin)
     z = nz_data[:,0]
+    # fixed_quad(n=10000) on the same [zmin, zmax] for every bin: evaluate the
+    # Gauss-Legendre nodes once and vectorise the comoving distance over them
+    # instead of calling astropy's scalar integral 10,000 times per bin.
+    zmin=1e-18;zmax=3
+    nodes,weights = _legendre_nodes(10000)
+    half = 0.5*(zmax-zmin); mid = 0.5*(zmax+zmin)
+    z_nodes = half*nodes + mid
+    chi_nodes = (apcosmo.comoving_distance(z_nodes)/(cst.c/apcosmo.H0)).cgs
     for i in range(ntomobin):
         nz = nz_data[:,i+1]
-        zmin=1e-18;zmax=3
         n_of_z_interp = interp1d(z, nz, kind='quadratic',fill_value='extrapolate')
-        n_0[i], error = fixed_quad(n_0_i_int, zmin, zmax, args=(n_of_z_interp,),n=10000)
-        n_1[i], error = fixed_quad(n_1_i_int, zmin, zmax, args=(n_of_z_interp,apcosmo),n=10000)
+        nz_nodes = n_of_z_interp(z_nodes)
+        n_0[i] = half*np.sum(weights*nz_nodes)
+        n_1[i] = half*np.sum(weights*nz_nodes/chi_nodes)
     return n_0,n_1,ntomobin
 
 def reorganise_ell(dvec,tomobins,ellbins,verbose=False):
@@ -308,7 +328,14 @@ class bnt_core:
         self.ell_arr = np.arange(3*2048)
 
     def _pCl_bpw(self,i,j):
-        return np.load(self.pCl_dir+'bpw/bpw_s'+str(i)+'xs'+str(j)+'.npy')[0,:,0,:].T
+        # The bandpower window functions are fixed data files; load each pair
+        # once per pCl_dir instead of re-reading 23 MB from disk per call.
+        key = (str(self.pCl_dir), i, j)
+        bpw = _BPW_CACHE.get(key)
+        if bpw is None:
+            bpw = np.load(self.pCl_dir+'bpw/bpw_s'+str(i)+'xs'+str(j)+'.npy')[0,:,0,:].T
+            _BPW_CACHE[key] = bpw
+        return bpw
 
     def _Cl2pCl(self,Cl,bpw):
         ell_targ = np.arange(3*2048)
@@ -392,6 +419,9 @@ class bnt_core:
         self.TAGN = float(kwargs.pop('T_AGN',7.8))
         
     def _inflate_core(self,**kwargs):
+        sigma8_normalization = kwargs.pop('sigma8_normalization', 'ccl')
+        if sigma8_normalization not in ('ccl', 'camb_matter'):
+            raise ValueError('sigma8_normalization must be ccl or camb_matter')
         ep = {"camb": {"halofit_version": self.nl_recipe, 
                        "HMCode_A_baryon": self.B, 
                        'HMCode_logT_AGN': self.TAGN,
@@ -419,49 +449,35 @@ class bnt_core:
                              #mg_parametrization=self.mgpara,
                              extra_parameters=ep)
             else:
-                S8_0 = 0.8128
                 sig8_0 = 0.826
-                #As_0 = 2.18676e-9*(self.S8/S8_0)**2
                 self.sig8 = self.S8*np.sqrt(0.3/self.Om)
+                # n_iter=1: estimate A_s, then correct it once using the
+                # actual sigma8 of the initial cosmology.
                 As_0 = 2.18676e-9*(self.sig8/sig8_0)**2
-                cosmo_0 = ccl.Cosmology(Omega_c = self.Oc,
+                if sigma8_normalization == 'camb_matter':
+                    if self.w_0 != -1.0 or self.w_a != 0.0:
+                        raise ValueError('camb_matter normalization is only validated for LCDM')
+                    if self.M_nu != 0.06:
+                        raise ValueError('camb_matter normalization is only validated for m_nu=0.06 eV')
+                    sig8_0 = matter_only_sigma8(self.Oc*self.h**2, self.Ob*self.h**2,
+                                                self.h, self.ns, As_0, self.M_nu)
+                else:
+                    cosmo_0 = ccl.Cosmology(Omega_c = self.Oc,
                              Omega_b = self.Ob,h = self.h,
                              n_s = self.ns,A_s=As_0,Neff=3.046, 
                              m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
                              transfer_function=self.transfer,
                              matter_power_spectrum=self.nl_code,
-                             #mg_parametrization=self.mgpara,
                              extra_parameters=ep)
-                #S8_1 = np.sqrt(self.Om/0.3)*ccl.power.sigma8(cosmo_0)
-                #As_1 = As_0*(self.S8/S8_1)**2
-                sig8_1 = ccl.power.sigma8(cosmo_0)
-                As_1 = As_0*(self.sig8/sig8_1)**2
-                cosmo_1 = ccl.Cosmology(Omega_c = self.Oc,
+                    sig8_0 = ccl.power.sigma8(cosmo_0)
+                self.As = As_0*(self.sig8/sig8_0)**2
+                self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
                              Omega_b = self.Ob,h = self.h,
-                             n_s = self.ns,A_s=As_1,Neff=3.046, 
+                             n_s = self.ns,A_s=self.As,Neff=3.046,
                              m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
                              transfer_function=self.transfer,
                              matter_power_spectrum=self.nl_code,
-                             #mg_parametrization=self.mgpara,
                              extra_parameters=ep)
-                #S8_2 = np.sqrt(self.Om/0.3)*ccl.power.sigma8(cosmo_1)
-                #if np.abs(S8_2/self.S8 - 1) > 0.01:
-                    #self.As = As_1*(self.S8/S8_2)**2
-                sig8_2 = ccl.power.sigma8(cosmo_1)
-                if np.abs(sig8_2/self.sig8 - 1) > 0.01:
-                    self.As = As_1*(self.sig8/sig8_2)**2
-                    self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
-                             Omega_b = self.Ob,h = self.h,
-                             n_s = self.ns,A_s=self.As,Neff=3.046, 
-                             m_nu=self.M_nu,w0 = self.w_0,wa = self.w_a,
-                             transfer_function=self.transfer,
-                             matter_power_spectrum=self.nl_code,
-                             #mg_parametrization=self.mgpara,
-                             extra_parameters=ep)
-                else:
-                    self.As = As_1
-                    self.ccl_cosmo = cosmo_1
-                    
                 
         else:
             self.ccl_cosmo = ccl.Cosmology(Omega_c = self.Oc,
@@ -472,6 +488,11 @@ class bnt_core:
                              matter_power_spectrum=self.nl_code,
                              mg_parametrization=self.mgpara,
                              extra_parameters=ep)
+
+        # The true S8 is the one this cosmology actually has, not the target
+        # used to set A_s (they differ slightly under fast normalization).
+        self.sig8 = float(ccl.power.sigma8(self.ccl_cosmo))
+        self.S8 = self.sig8*np.sqrt(self.Om/0.3)
         
     def _inflate_power(self,**kwargs):
         self.kmin = kwargs.pop('kmin',0.0025)
