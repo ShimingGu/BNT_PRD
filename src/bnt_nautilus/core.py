@@ -421,6 +421,7 @@ class bnt_core:
     def _inflate_core(self,**kwargs):
         sigma8_normalization = kwargs.pop('sigma8_normalization', 'ccl')
         external_pk0 = kwargs.pop('external_pk0', None)
+        external_pka = kwargs.pop('external_pka', None)
         if sigma8_normalization not in ('ccl', 'camb_matter'):
             raise ValueError('sigma8_normalization must be ccl or camb_matter')
         ep = {"camb": {"halofit_version": self.nl_recipe, 
@@ -494,7 +495,7 @@ class bnt_core:
         # used to set A_s (they differ slightly under fast normalization).
         # With an external spectrum the amplitude is fixed externally, so do
         # not trigger CAMB's linear power just to report sigma8.
-        if external_pk0 is not None and self.S8 >= 0:
+        if (external_pk0 is not None or external_pka is not None) and self.S8 >= 0:
             self.sig8 = float(self.S8*np.sqrt(0.3/self.Om))
         else:
             self.sig8 = float(ccl.power.sigma8(self.ccl_cosmo))
@@ -667,7 +668,10 @@ class bnt_core:
     def _inflate_spectra(self,**kwargs):
         pknl_tsf = fermi_dirac2(self.karr,self.sharp,self.kmin,self.kmax)
         external_pk0 = kwargs.pop('external_pk0', None)
-        if external_pk0 is not None:
+        external_pka = kwargs.pop('external_pka', None)
+        if external_pka is not None:
+            self.pka = np.asarray(external_pka, dtype=np.float64) * pknl_tsf[None, :]
+        elif external_pk0 is not None:
             growth = self.ccl_cosmo.growth_factor(self.aarr2)
             growth = growth / self.ccl_cosmo.growth_factor(1.0)
             self.pka = (np.asarray(external_pk0, dtype=np.float64)[None, :]
